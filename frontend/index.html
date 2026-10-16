@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeChat — Modern AI Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2'%3E%3Cpolyline points='16 18 22 12 16 6'/%3E%3Cpolyline points='8 6 2 12 8 18'/%3E%3C/svg%3E">
+  <meta name="description" content="AI conversation workspace with automated web search grounding, code synthesis, and reasoning.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </div>
+          <span>CodeChat</span>
+        </div>
+      </div>
+
+      <button id="btn-new-chat" class="btn-new-chat" title="Create new chat (Cmd/Ctrl + K)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>New Chat</span>
+      </button>
+
+      <div class="sidebar-search">
+        <div class="search-input-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            id="search-chats" 
+            class="search-input" 
+            placeholder="Search conversations..." 
+            aria-label="Search conversations"
+          >
+        </div>
+      </div>
+
+      <div id="chat-list" class="sidebar-content" role="list">
+      </div>
+
+      <div class="sidebar-footer">
+        <div id="user-profile" class="user-profile user-profile--loading">
+          <div id="user-avatar" class="user-avatar" aria-hidden="true">…</div>
+          <div class="user-info">
+            <span id="user-name" class="user-name">Loading…</span>
+            <span id="user-email" class="user-email"></span>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-logout" title="Sign Out" aria-label="Sign Out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-chat-panel">
+      <button id="btn-mobile-toggle" class="btn-mobile-toggle" aria-label="Open sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
+      <div id="messages-container" class="messages-container" role="log" aria-live="polite">
+      </div>
+
+      <div class="input-dock">
+        <div class="input-box-wrapper">
+          <textarea 
+            id="message-input" 
+            class="message-textarea" 
+            placeholder="Ask a question or enter a coding challenge..." 
+            rows="1" 
+            aria-label="Chat message input"
+          ></textarea>
+          <button id="btn-send" class="btn-send" disabled aria-label="Send message" title="Send (Enter)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">
+          <span>Press <strong>Enter</strong> to send &bull; <strong>Shift + Enter</strong> for a new line &bull; <strong>Cmd/Ctrl + K</strong> for new chat</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="confirm-modal-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
+      <h3 id="modal-title" class="modal-title">Confirm Action</h3>
+      <p id="modal-desc" class="modal-desc">Are you sure you want to proceed?</p>
+      <div class="modal-actions">
+        <button id="modal-btn-cancel" class="btn-secondary">Cancel</button>
+        <button id="modal-btn-confirm" class="btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js" integrity="sha384-P0JNneQf81HOl9VwNXK76cQ9VMD6Nfsnepxb0cCOg8+UzEdzgPHAPV4wVQrvYQSx" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
+  <script type="module" src="js/chat.js"></script>
+</body>
+</html>

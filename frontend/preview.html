@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown preview</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <main class="main-chat-panel">
+      <div id="messages-container" class="messages-container" role="log"></div>
+    </main>
+  </div>
+  <div id="verify-status" hidden></div>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js" integrity="sha384-P0JNneQf81HOl9VwNXK76cQ9VMD6Nfsnepxb0cCOg8+UzEdzgPHAPV4wVQrvYQSx" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
+  <script type="module">
+    import { ui } from './js/ui.js';
+
+    const container = document.getElementById('messages-container');
+
+    function row(role, html) {
+      const el = document.createElement('div');
+      el.className = `message-row ${role}`;
+      el.innerHTML = `
+        <div class="message-avatar ${role}">${role === 'user' ? 'U' : '&lt;'}</div>
+        <div class="message-content-wrapper">
+          <div class="message-bubble">${html}</div>
+        </div>
+      `;
+      container.appendChild(el);
+    }
+
+    const [overview, coding] = await Promise.all([
+      fetch('/output.md').then((r) => r.text()),
+      fetch('/coding_output.md').then((r) => r.text()),
+    ]);
+
+    const scriptTag = '<' + 'script>alert(1)</' + 'script>';
+    row('user', ui.formatUserMessage('Use `npm i node-fetch` and ' + scriptTag));
+    row('assistant', ui.formatMessage(overview));
+    row('assistant', ui.formatMessage(coding));
+    row('assistant', ui.formatMessage('Ignore this <img src=x onerror="window.__xss=1"> ' + scriptTag));
+
+    container.addEventListener('click', async (e) => {
+      const btn = e.target.closest?.('.btn-copy-code');
+      if (!btn) return;
+      const code = btn.closest('.code-block')?.querySelector('pre')?.textContent ?? '';
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(code);
+        } else {
+          throw new Error('no clipboard');
+        }
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        btn.dataset.copied = code.slice(0, 40);
+      } catch (err) {
+        btn.dataset.copyError = String(err);
+      }
+    });
+
+    const bubbles = [...container.querySelectorAll('.message-bubble')];
+    const status = {
+      tables: container.querySelectorAll('table').length,
+      codeBlocks: container.querySelectorAll('.code-block').length,
+      copyButtons: container.querySelectorAll('.btn-copy-code').length,
+      citations: container.textContent.includes('【') || container.textContent.includes('†L'),
+      scripts: container.querySelectorAll('script').length,
+      images: container.querySelectorAll('img').length,
+      xss: window.__xss === 1,
+      userHasCodeBlock: bubbles[0].querySelector('.code-block') !== null,
+      userShowsScriptTag: bubbles[0].textContent.includes('<script>'),
+      headings: container.querySelectorAll('h1,h2,h3').length,
+      lists: container.querySelectorAll('ol,ul').length,
+      langs: [...container.querySelectorAll('.code-block-lang')].map((el) => el.textContent),
+    };
+    document.getElementById('verify-status').textContent = JSON.stringify(status);
+  </script>
+</body>
+</html>
