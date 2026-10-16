@@ -206,6 +206,36 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Preflight EC2 and SSM
+        env:
+          EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+        run: |
+          set -euo pipefail
+          echo "AWS region: ${AWS_REGION} (region only, e.g. us-east-1 — not an AZ)"
+          EC2_INFO="$(aws ec2 describe-instances \
+            --instance-ids "${EC2_INSTANCE_ID}" \
+            --query "Reservations[0].Instances[0].[State.Name,IamInstanceProfile.Arn]" \
+            --output text)"
+          read -r STATE PROFILE <<< "$EC2_INFO"
+          echo "EC2 state: ${STATE}; IAM profile: ${PROFILE}"
+          if [ "${STATE}" != "running" ]; then
+            echo "::error::Instance must be running."
+            exit 1
+          fi
+          if [ -z "${PROFILE}" ] || [ "${PROFILE}" = "None" ]; then
+            echo "::error::Attach an EC2 IAM role with AmazonSSMManagedInstanceCore."
+            exit 1
+          fi
+          SSM_PING="$(aws ssm describe-instance-information \
+            --filters "Key=InstanceIds,Values=${EC2_INSTANCE_ID}" \
+            --query "InstanceInformationList[0].PingStatus" \
+            --output text 2>/dev/null || true)"
+          echo "SSM PingStatus: ${SSM_PING:-not registered}"
+          if [ "${SSM_PING}" != "Online" ]; then
+            echo "::error::Instance must be Online in Fleet Manager before deploy."
+            exit 1
+          fi
+
       - name: Deploy via SSM
         env:
           EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
@@ -218,27 +248,30 @@ jobs:
         run: |
           set -euo pipefail
           COMPOSE_B64="$(base64 -w0 docker-compose.prod.yml)"
-          REMOTE_SCRIPT=$(cat <<EOF
-          set -euo pipefail
-          APP_DIR="${EC2_APP_DIR}"
-          mkdir -p "\${APP_DIR}/backend"
-          echo "${COMPOSE_B64}" | base64 -d > "\${APP_DIR}/docker-compose.prod.yml"
-          export DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME}"
-          export DOCKERHUB_BACKEND_IMAGE="${DOCKERHUB_BACKEND_IMAGE}"
-          export DOCKERHUB_FRONTEND_IMAGE="${DOCKERHUB_FRONTEND_IMAGE}"
-          export IMAGE_TAG="${IMAGE_TAG}"
-          echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
-          cd "\${APP_DIR}"
-          docker compose -f docker-compose.prod.yml pull
-          docker compose -f docker-compose.prod.yml up -d
-          docker compose -f docker-compose.prod.yml ps
-          EOF
-          )
+          SSM_PARAMS="$(jq -n \
+            --arg app "${EC2_APP_DIR}" \
+            --arg b64 "${COMPOSE_B64}" \
+            --arg user "${DOCKERHUB_USERNAME}" \
+            --arg pass "${DOCKERHUB_TOKEN}" \
+            --arg be "${DOCKERHUB_BACKEND_IMAGE}" \
+            --arg fe "${DOCKERHUB_FRONTEND_IMAGE}" \
+            --arg tag "${IMAGE_TAG}" \
+            '{
+              commands: [
+                ("/bin/bash -eu -c " + (
+                  "mkdir -p " + ($app | @sh) + "/backend && " +
+                  "echo " + ($b64 | @sh) + " | base64 -d > " + ($app | @sh) + "/docker-compose.prod.yml && " +
+                  "export DOCKERHUB_USERNAME=" + ($user | @sh) + " DOCKERHUB_BACKEND_IMAGE=" + ($be | @sh) + " DOCKERHUB_FRONTEND_IMAGE=" + ($fe | @sh) + " IMAGE_TAG=" + ($tag | @sh) + " && " +
+                  "echo " + ($pass | @sh) + " | docker login -u " + ($user | @sh) + " --password-stdin && " +
+                  "cd " + ($app | @sh) + " && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d && docker compose -f docker-compose.prod.yml ps"
+                | @sh))
+              ]
+            }')"
           COMMAND_ID="$(aws ssm send-command \
             --instance-ids "${EC2_INSTANCE_ID}" \
             --document-name "AWS-RunShellScript" \
             --comment "codeChat deploy ${IMAGE_TAG}" \
-            --parameters "$(jq -n --arg script "$REMOTE_SCRIPT" '{commands: [$script]}')" \
+            --parameters "${SSM_PARAMS}" \
             --query "Command.CommandId" \
             --output text)"
           echo "SSM command id: ${COMMAND_ID}"

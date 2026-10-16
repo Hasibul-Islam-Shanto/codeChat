@@ -8,11 +8,11 @@ A full-stack AI chat application for developers: sign in, manage conversations, 
 
 CodeChat is a monorepo with three main parts:
 
-| Layer | Location | Role |
-|--------|-----------|------|
-| **Frontend** | `frontend/` | Static HTML/CSS/JS UI (auth, sidebar, markdown chat, mobile layout) |
-| **Backend** | `backend/` | Express + TypeScript REST API, JWT session cookies, MongoDB persistence |
-| **Infrastructure** | `docker-compose*.yml`, `.github/workflows/` | Local/prod containers and CI/CD to Docker Hub + AWS EC2 |
+| Layer              | Location                                    | Role                                                                    |
+| ------------------ | ------------------------------------------- | ----------------------------------------------------------------------- |
+| **Frontend**       | `frontend/`                                 | Static HTML/CSS/JS UI (auth, sidebar, markdown chat, mobile layout)     |
+| **Backend**        | `backend/`                                  | Express + TypeScript REST API, JWT session cookies, MongoDB persistence |
+| **Infrastructure** | `docker-compose*.yml`, `.github/workflows/` | Local/prod containers and CI/CD to Docker Hub + AWS EC2                 |
 
 Core user flows:
 
@@ -75,26 +75,26 @@ flowchart TB
 
 ### Application
 
-| Category | Technology |
-|----------|------------|
-| Runtime | Node.js 22, TypeScript |
-| API | Express, Zod validation, express-rate-limit |
-| Database | MongoDB 7, Mongoose |
-| Auth | bcrypt, JWT, cookie-parser |
-| LLM | groq-sdk (Groq chat completions + function calling) |
-| Search | @tavily/core |
-| Security | Helmet, CORS with credentials |
-| Frontend | Vanilla HTML/CSS/ES modules, Marked, DOMPurify |
-| Frontend server | Nginx (Docker prod image) |
+| Category        | Technology                                          |
+| --------------- | --------------------------------------------------- |
+| Runtime         | Node.js 22, TypeScript                              |
+| API             | Express, Zod validation, express-rate-limit         |
+| Database        | MongoDB 7, Mongoose                                 |
+| Auth            | bcrypt, JWT, cookie-parser                          |
+| LLM             | groq-sdk (Groq chat completions + function calling) |
+| Search          | @tavily/core                                        |
+| Security        | Helmet, CORS with credentials                       |
+| Frontend        | Vanilla HTML/CSS/ES modules, Marked, DOMPurify      |
+| Frontend server | Nginx (Docker prod image)                           |
 
 ### DevOps
 
-| Category | Technology |
-|----------|------------|
-| Containers | Docker, Docker Compose |
-| CI/CD | GitHub Actions (build, typecheck, integration tests, Docker push) |
-| Registry | Docker Hub |
-| Deploy | AWS EC2 via AWS Systems Manager (SSM) `send-command` |
+| Category   | Technology                                                        |
+| ---------- | ----------------------------------------------------------------- |
+| Containers | Docker, Docker Compose                                            |
+| CI/CD      | GitHub Actions (build, typecheck, integration tests, Docker push) |
+| Registry   | Docker Hub                                                        |
+| Deploy     | AWS EC2 via AWS Systems Manager (SSM) `send-command`              |
 
 ---
 
@@ -153,7 +153,9 @@ Open `http://localhost:5500` → sign up on `auth.html` → use the chat UI.
 If the API is not on `http://<same-host>:5001/api`, set before loading scripts:
 
 ```html
-<script>window.CODECHAT_API_URL = 'http://localhost:5001/api';</script>
+<script>
+  window.CODECHAT_API_URL = "http://localhost:5001/api";
+</script>
 ```
 
 ### 4. Run everything with Docker Compose (local)
@@ -164,11 +166,11 @@ Ensure `backend/.env` exists, then from the repo root:
 docker compose up --build
 ```
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5500 |
-| Backend | http://localhost:5001/api |
-| MongoDB | localhost:27017 |
+| Service  | URL                       |
+| -------- | ------------------------- |
+| Frontend | http://localhost:5500     |
+| Backend  | http://localhost:5001/api |
+| MongoDB  | localhost:27017           |
 
 ### 5. Integration tests (optional)
 
@@ -198,29 +200,29 @@ Production uses **pre-built images** from Docker Hub and **docker-compose.prod.y
 
 **Secrets**
 
-| Secret | Purpose |
-|--------|---------|
-| `DOCKERHUB_USERNAME` | Docker Hub user |
-| `DOCKERHUB_TOKEN` | Docker Hub access token |
-| `AWS_ACCESS_KEY_ID` | Deploy IAM user |
-| `AWS_SECRET_ACCESS_KEY` | Deploy IAM user |
+| Secret                  | Purpose                 |
+| ----------------------- | ----------------------- |
+| `DOCKERHUB_USERNAME`    | Docker Hub user         |
+| `DOCKERHUB_TOKEN`       | Docker Hub access token |
+| `AWS_ACCESS_KEY_ID`     | Deploy IAM user         |
+| `AWS_SECRET_ACCESS_KEY` | Deploy IAM user         |
 
 **Variables (repository or environment)**
 
-| Variable | Example | Purpose |
-|----------|---------|---------|
-| `AWS_REGION` | `us-east-1` | AWS region |
-| `EC2_INSTANCE_ID` | `i-0abc...` | Target instance |
-| `EC2_APP_DIR` | `/opt/codechat` | Deploy directory on EC2 |
-| `DOCKERHUB_BACKEND_IMAGE` | `codechat-backend` | Optional image name override |
+| Variable                   | Example             | Purpose                      |
+| -------------------------- | ------------------- | ---------------------------- |
+| `AWS_REGION`               | `us-east-1`         | AWS region                   |
+| `EC2_INSTANCE_ID`          | `i-0abc...`         | Target instance              |
+| `EC2_APP_DIR`              | `/opt/codechat`     | Deploy directory on EC2      |
+| `DOCKERHUB_BACKEND_IMAGE`  | `codechat-backend`  | Optional image name override |
 | `DOCKERHUB_FRONTEND_IMAGE` | `codechat-frontend` | Optional image name override |
 
 ### Pipeline (on push to `main`)
 
-1. **build** — compile backend TypeScript  
-2. **test** — typecheck + integration tests with MongoDB service  
-3. **docker-build** — build and push backend/frontend images (SHA tags)  
-4. **docker-push** — promote images to `:latest`  
+1. **build** — compile backend TypeScript
+2. **test** — typecheck + integration tests with MongoDB service
+3. **docker-build** — build and push backend/frontend images (SHA tags)
+4. **docker-push** — promote images to `:latest`
 5. **deploy** — SSM runs on EC2: login to Docker Hub, `docker compose -f docker-compose.prod.yml pull`, `up -d`
 
 ### Manual production deploy
@@ -244,8 +246,8 @@ Set `TRUST_PROXY=1` when serving the API behind a reverse proxy/load balancer.
 
 ## Screenshots
 
-| Sign in | Chat workspace (empty state) |
-|---------|------------------------------|
+| Sign in                                        | Chat workspace (empty state)                   |
+| ---------------------------------------------- | ---------------------------------------------- |
 | ![CodeChat sign in](docs/screenshots/auth.png) | ![CodeChat main UI](docs/screenshots/chat.png) |
 
 Additional captures can go in [`docs/screenshots/`](docs/screenshots/).
@@ -254,14 +256,14 @@ Additional captures can go in [`docs/screenshots/`](docs/screenshots/).
 
 ## Problems faced
 
-| Problem | What we did |
-|---------|-------------|
-| **CORS + cookies** | Session uses HTTP-only cookies; browser requires matching origins and `credentials: 'include'`. Dev allows any `localhost` port; production requires exact `CORS_ORIGIN`. |
-| **Two-step LLM + search** | Groq tool calls require persisting tool messages, injecting Tavily text, then a synthesis completion—easy to get wrong message order or duplicate assistant rows. |
-| **Verbose answers** | Default “helpful” model behavior and loose synthesis prompts produced long replies; tightened `SYSTEM_PROMPT` / `SYNTHESIS_PROMPT` and lowered temperature. |
-| **Concurrent sends** | Rapid sends on one chat could race; added per-chat locking in `chatLock.ts`. |
-| **CI without paid API keys** | Integration pipeline uses `mock_groq_key` / `mock_tavily_key` so tests run without billing real providers. |
-| **Deploy drift on EC2** | Shipping `docker-compose.prod.yml` via SSM base64 keeps the server compose file aligned with the repo tag being deployed. |
+| Problem                      | What we did                                                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CORS + cookies**           | Session uses HTTP-only cookies; browser requires matching origins and `credentials: 'include'`. Dev allows any `localhost` port; production requires exact `CORS_ORIGIN`. |
+| **Two-step LLM + search**    | Groq tool calls require persisting tool messages, injecting Tavily text, then a synthesis completion—easy to get wrong message order or duplicate assistant rows.         |
+| **Verbose answers**          | Default “helpful” model behavior and loose synthesis prompts produced long replies; tightened `SYSTEM_PROMPT` / `SYNTHESIS_PROMPT` and lowered temperature.               |
+| **Concurrent sends**         | Rapid sends on one chat could race; added per-chat locking in `chatLock.ts`.                                                                                              |
+| **CI without paid API keys** | Integration pipeline uses `mock_groq_key` / `mock_tavily_key` so tests run without billing real providers.                                                                |
+| **Deploy drift on EC2**      | Shipping `docker-compose.prod.yml` via SSM base64 keeps the server compose file aligned with the repo tag being deployed.                                                 |
 
 ---
 
